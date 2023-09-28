@@ -1,4 +1,4 @@
-# Investment Portfolio Analysis
+# Investment Portfolio Analysis with SQL
 
 This project encompasses a thorough examination of investment portfolios utilizing client data. The primary objective is to furnish clients with valuable analytical insights.
 

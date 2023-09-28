@@ -1,0 +1,340 @@
+-- Securities expected return, risk and sharpe ratio for M12, M18 and M24
+
+USE invest;
+
+
+CREATE VIEW M12_data_Team_10_v1 AS
+-- Expected return and risk file for last 1 year
+SELECT sml.major_asset_class,exp_return.ticker, exp_return.expected_return AS M12_return, risk.security_risk AS M12_risk
+        
+from
+-- Average return ticker  
+	(SELECT 	A.ticker
+		  , ROUND(AVG(A.M12_daily_ret),2) AS expected_return
+			FROM
+				(SELECT a.date
+					  ,a.ticker
+					  ,ROUND((a.value - a.M12_lagged_price)/a.M12_lagged_price,2) AS M12_daily_ret
+					FROM 
+					(
+					  SELECT *
+							, ROUND(LAG(value, 250) OVER(
+														PARTITION BY ticker
+														ORDER BY date
+														),2) AS M12_lagged_price
+						FROM pricing_daily_new
+						WHERE price_type LIKE 'Adjusted'
+			        ) AS a
+			) AS A 
+            WHERE date > '2021-09-10'
+            GROUP BY A.ticker) as exp_return 
+LEFT JOIN security_masterlist AS sml
+		ON exp_return.ticker = sml.ticker
+-- Average risk for security for last 1 year
+LEFT JOIN 
+			(SELECT A.ticker
+					, ROUND(stddev_samp(A.M12_risk),2) AS security_risk
+			 FROM
+				(SELECT a.date
+					   ,a.ticker
+					   ,ROUND((a.value - a.M12_lagged_price)/a.M12_lagged_price,2) AS M12_risk
+					FROM 
+					(
+					   SELECT *
+							, ROUND(LAG(value, 250) OVER(
+														PARTITION BY ticker
+														ORDER BY date
+														),2) AS M12_lagged_price
+						FROM pricing_daily_new
+						WHERE price_type LIKE 'Adjusted'
+			        ) AS a
+			) AS A 
+            WHERE date > '2021-09-10'
+            GROUP BY A.ticker) AS risk
+ON exp_return.ticker = risk.ticker;
+
+
+CREATE VIEW M24_data_Team_10_v1 AS
+-- Expected return and risk file for last 1 year
+SELECT sml.major_asset_class,exp_return.ticker, exp_return.expected_return AS M24_return, risk.security_risk AS M24_risk
+from
+-- Average return ticker  
+	(SELECT 	A.ticker
+		  , ROUND(AVG(A.M24_daily_ret),2) AS expected_return
+			FROM
+				(SELECT a.date
+					  ,a.ticker
+					  ,ROUND((a.value - a.M24_lagged_price)/a.M24_lagged_price,2) AS M24_daily_ret
+					FROM 
+					(
+					  SELECT *
+							, ROUND(LAG(value, 500) OVER(
+														PARTITION BY ticker
+														ORDER BY date
+														),2) AS M24_lagged_price
+						FROM pricing_daily_new
+						WHERE price_type LIKE 'Adjusted'
+			        ) AS a
+			) AS A 
+            WHERE date > '2021-09-10'
+            GROUP BY A.ticker) as exp_return 
+LEFT JOIN security_masterlist AS sml
+		ON exp_return.ticker = sml.ticker
+-- Average risk for security for last 1 year
+LEFT JOIN 
+			(SELECT A.ticker
+					, ROUND(stddev_samp(A.M24_risk),2) AS security_risk
+			 FROM
+				(SELECT a.date
+					   ,a.ticker
+					   ,ROUND((a.value - a.M24_lagged_price)/a.M24_lagged_price,2) AS M24_risk
+					FROM 
+					(
+					   SELECT *
+							, ROUND(LAG(value, 500) OVER(
+														PARTITION BY ticker
+														ORDER BY date
+														),2) AS M24_lagged_price
+						FROM pricing_daily_new
+						WHERE price_type LIKE 'Adjusted'
+			        ) AS a
+			) AS A 
+            WHERE date > '2021-09-10'
+            GROUP BY A.ticker) AS risk
+ON exp_return.ticker = risk.ticker;
+
+
+CREATE VIEW M18_data_Team_10_v1 AS
+-- Expected return and risk file for last 1 year
+SELECT sml.major_asset_class,exp_return.ticker, exp_return.expected_return AS M18_return, risk.security_risk AS M18_risk
+from
+-- Average return ticker  
+	(SELECT 	A.ticker
+		  , ROUND(AVG(A.M18_daily_ret),2) AS expected_return
+			FROM
+				(SELECT a.date
+					  ,a.ticker
+					  ,ROUND((a.value - a.M18_lagged_price)/a.M18_lagged_price,2) AS M18_daily_ret
+					FROM 
+					(
+					  SELECT *
+							, ROUND(LAG(value, 376) OVER(
+														PARTITION BY ticker
+														ORDER BY date
+														),2) AS M18_lagged_price
+						FROM pricing_daily_new
+						WHERE price_type LIKE 'Adjusted'
+			        ) AS a
+			) AS A 
+            WHERE date > '2021-09-10'
+            GROUP BY A.ticker) as exp_return 
+LEFT JOIN security_masterlist AS sml
+		ON exp_return.ticker = sml.ticker
+-- Average risk for security for last 1 year
+LEFT JOIN 
+			(SELECT A.ticker
+					, ROUND(stddev_samp(A.M18_risk),2) AS security_risk
+			 FROM
+				(SELECT a.date
+					   ,a.ticker
+					   ,ROUND((a.value - a.M18_lagged_price)/a.M18_lagged_price,2) AS M18_risk
+					FROM 
+					(
+					   SELECT *
+							, ROUND(LAG(value, 376) OVER(
+														PARTITION BY ticker
+														ORDER BY date
+														),2) AS M18_lagged_price
+						FROM pricing_daily_new
+						WHERE price_type LIKE 'Adjusted'
+			        ) AS a
+			) AS A 
+            WHERE date > '2021-09-10'
+            GROUP BY A.ticker) AS risk
+ON exp_return.ticker = risk.ticker;
+
+SELECT a.major_asset_class,a.ticker
+	   , a.M12_return, a.M12_risk
+       , b.M18_return, b.M18_risk
+       , c.M24_return, c.M24_risk
+       , ROUND(a.M12_return/a.M12_risk,2) AS M12_sharp_ratio
+       , ROUND(b.M18_return/b.M18_risk,2) AS M18_sharp_ratio
+       , ROUND(c.M24_return/c.M24_risk,2) AS M24_sharp_ratio
+	FROM M12_data_Team_10_v1 AS a
+LEFT JOIN M18_data_Team_10_v1 AS b
+	ON a.ticker=b.ticker
+LEFT JOIN  M24_data_Team_10_v1 AS c   
+	ON a.ticker=c.ticker;
+
+
+
+-- Client classification as per networth
+
+USE invest;
+SELECT client_networth.client_id AS customer_id,  
+		CASE 
+			WHEN client_networth.total_holdings >=50000000 THEN 'UHNW'
+			WHEN client_networth.total_holdings >=5000000 THEN 'HNW'
+			WHEN client_networth.total_holdings >1000000 THEN 'Affluent'
+			ELSE 'Others'
+            END AS client_type
+		, client_networth.total_holdings
+FROM 
+(    
+SELECT a. client_id,
+ROUND(SUM(a. total_asset_value) ,0) AS total_holdings
+
+FROM
+(SELECT hc.account_id, hc.ticker, hc.date, hc.variable, hc.value
+		, hc.price_type	quantity
+		, ad.client_id
+        , ad.main_account
+        , ad.acct_open_date
+        , hc.value*hc.quantity AS total_asset_value
+	FROM holdings_current AS hc
+        LEFT JOIN account_dim AS ad
+				USING (account_id)
+ WHERE hc.price_type LIKE 'Adjusted'
+	) AS a
+GROUP BY a.client_id
+) AS client_networth
+ORDER BY client_networth.total_holdings DESC;
+
+-- Query for customer holding, return, risk and sharpe ratio
+
+USE invest;
+
+SELECT    return_customer.client_id
+	    , ROUND(return_customer.total_holdings,0) AS total_holdings
+        , return_customer.client_type
+	    , ROUND(SUM(return_customer.return_contri)*100,2) AS portfolio_return_percent
+        , ROUND(SUM(return_customer.risk)*100,2) AS portfolio_risk_percent
+        , ROUND(SUM(return_customer.return_contri)/SUM(return_customer.risk),2) AS sharpe_ratio
+
+FROM
+
+(SELECT holding_table.client_id,
+		holding_table.client_type,
+	    holding_table.ticker,
+	    holding_table.ticker_value,
+	    holding_table.total_holdings,
+	    holding_table.contribution,
+	    return_table.M12_returns,
+		holding_table.contribution * return_table.M12_returns AS return_contri,
+	    risk.security_risk,
+        risk.security_risk * holding_table.contribution AS risk
+		
+        FROM
+
+			(SELECT   A.client_id,
+			 A.ticker, 
+			 A.value_split AS ticker_value,
+			 B.total_holdings,
+             B.client_type,
+			 (A.value_split/B.total_holdings) AS contribution
+
+					FROM
+
+					(SELECT ad.client_id
+							   , av.ticker
+							   , SUM(av.security_value) AS value_split
+						FROM 
+						   (
+						    SELECT account_id,ticker, value * quantity AS security_value
+						    FROM holdings_current
+						    WHERE price_type = 'Adjusted' 
+    
+						    ) AS av
+						LEFT JOIN account_dim AS ad
+								ON av.account_id=ad.account_id
+
+						GROUP BY ad.client_id
+							   , av.ticker) AS A
+-- Classifying clients as UHNW, HNW, Affluents and others
+-- basis their total holdings to help identify the target group
+-- 
+					LEFT JOIN (
+								SELECT client_networth.client_id AS customer_id,  
+								CASE 
+									WHEN client_networth.total_holdings >=50000000 THEN 'UHNW'
+									WHEN client_networth.total_holdings >=5000000 THEN 'HNW'
+									WHEN client_networth.total_holdings >1000000 THEN 'Affluent'
+									ELSE 'Others'
+						            END AS client_type
+								, client_networth.total_holdings
+					FROM 
+								(    
+								SELECT a. client_id,
+								SUM(a. total_asset_value) AS total_holdings
+
+								FROM
+								(SELECT hc.account_id, hc.ticker, hc.date, hc.variable, hc.value
+									, hc.price_type	quantity
+									, ad.client_id
+							      , ad.main_account
+							      , ad.acct_open_date
+							      , hc.value*hc.quantity AS total_asset_value
+								FROM holdings_current AS hc
+							        LEFT JOIN account_dim AS ad
+										ON	hc.account_id = ad.account_id
+							 WHERE hc.price_type LIKE 'Adjusted'
+								) AS a
+				GROUP BY a.client_id
+				) AS client_networth
+				) AS B
+
+ON A.client_id = B.customer_id
+) AS holding_table
+-- --------------------------------------------------
+LEFT JOIN 
+-- Return for each ticker
+( SELECT exp_ret.ticker, AVG(exp_ret.daily_return) AS M12_returns
+	FROM
+   (SELECT a.date
+	   ,a.ticker
+	   ,(a.value - a.M12_lagged_price)/a.M12_lagged_price AS daily_return
+	   
+FROM 
+(
+SELECT *
+		, IFNULL(LAG(value, 250) OVER(
+						       PARTITION BY ticker
+                           ORDER BY date
+                           ),0) AS M12_lagged_price
+		
+FROM pricing_daily_new
+WHERE price_type LIKE 'Adjusted'
+) as a	
+WHERE date > '2021-09-10'
+) AS exp_ret
+GROUP BY exp_ret.ticker) AS return_table
+
+ON holding_table.ticker = return_table.ticker
+-- Risk for each ticker
+LEFT JOIN 
+			(SELECT A.ticker
+					, stddev_samp(A.M12_risk) AS security_risk
+			 FROM
+				(SELECT a.date
+					   ,a.ticker
+					   ,(a.value - a.M12_lagged_price)/a.M12_lagged_price AS M12_risk
+					FROM 
+					(
+					   SELECT *
+							, LAG(value, 250) OVER(
+														PARTITION BY ticker
+														ORDER BY date
+														) AS M12_lagged_price
+						FROM pricing_daily_new
+						WHERE price_type LIKE 'Adjusted'
+			        ) AS a
+			) AS A 
+            WHERE date > '2021-09-10'
+            GROUP BY A.ticker) AS risk
+ON return_table.ticker = risk.ticker
+) AS return_customer
+WHERE return_customer.client_type LIKE 'HNW' 
+GROUP BY return_customer.client_id, 
+	    return_customer.total_holdings 
+	 ORDER BY  return_customer.total_holdings ;
+
